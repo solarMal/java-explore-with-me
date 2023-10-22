@@ -29,17 +29,14 @@ public class StatsServiceImpl implements StatsService {
     @Override
     @Transactional
     public void saveHit(StatsRequestDto statsRequestDto) {
-        Optional<App> optApp = appRepository.findByName(statsRequestDto.getApp());
-        App app = new App();
-        if (optApp.isEmpty()) {
-            app.setName(statsRequestDto.getApp());
-            appRepository.save(app);
-        } else {
-            app = optApp.get();
-        }
+        App app = getAppOrCreateIfNotExists(statsRequestDto.getApp());
         Hit hit = toHit(statsRequestDto, app);
         hitRepository.save(hit);
-        log.info("Hit saving complete successfully");
+        log.info("Hit сохранение завершено успешно");
+    }
+
+    private App getAppOrCreateIfNotExists(String appName) {
+        return appRepository.findByName(appName).orElseGet(() -> createAndSaveApp(appName));
     }
 
     @Override
@@ -48,12 +45,23 @@ public class StatsServiceImpl implements StatsService {
         if (uris == null) {
             uris = Collections.emptyList();
         }
+
+        List<StatsResponseDto> statsResponse;
+
         if (unique) {
-            log.info("Hits from unique IP's receiving complete successfully");
-            return hitRepository.findUniqHits(start, end, uris);
+            statsResponse = hitRepository.findUniqueHits(start, end, uris);
+            log.info("Получение данных о хитах от уникальных IP-адресов завершено успешно");
         } else {
-            log.info("Hits receiving complete successfully");
-            return hitRepository.findNonUniqHits(start, end, uris);
+            statsResponse = hitRepository.findNonUniqueHits(start, end, uris);
+            log.info("Получение данных о хитах завершено успешно");
         }
+
+        return statsResponse;
+    }
+
+    private App createAndSaveApp(String appName) {
+        App app = new App();
+        app.setName(appName);
+        return appRepository.save(app);
     }
 }
