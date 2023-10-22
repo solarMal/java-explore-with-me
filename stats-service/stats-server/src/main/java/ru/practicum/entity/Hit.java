@@ -1,4 +1,4 @@
-package entity;
+package ru.practicum.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

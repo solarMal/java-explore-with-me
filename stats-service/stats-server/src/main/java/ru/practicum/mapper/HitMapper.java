@@ -1,9 +1,9 @@
-package mapper;
+package ru.practicum.mapper;
 
-import entity.App;
-import entity.Hit;
 import lombok.experimental.UtilityClass;
 import ru.practicum.StatsRequestDto;
+import ru.practicum.entity.App;
+import ru.practicum.entity.Hit;
 
 @UtilityClass
 public class HitMapper {

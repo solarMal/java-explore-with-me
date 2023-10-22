@@ -9,13 +9,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class StatsResponseDto {
 
-    //Название сервиса
     private String app;
-
-    //URI сервиса
     private String uri;
-
-    //Количество просмотров
     private Long hits;
 
     public StatsResponseDto(String app, String uri, Long hits) {
