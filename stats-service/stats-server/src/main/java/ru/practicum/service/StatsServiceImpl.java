@@ -14,7 +14,6 @@ import ru.practicum.repository.HitRepository;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static ru.practicum.mapper.HitMapper.toHit;
 
