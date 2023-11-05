@@ -44,18 +44,12 @@ public class StatsServiceImpl implements StatsService {
         if (uris == null) {
             uris = Collections.emptyList();
         }
-
-        List<StatsResponseDto> statsResponse;
-
         if (unique) {
-            statsResponse = hitRepository.findUniqueHits(start, end, uris);
-            log.info("Получение данных о хитах от уникальных IP-адресов завершено успешно");
-        } else {
-            statsResponse = hitRepository.findNonUniqueHits(start, end, uris);
-            log.info("Получение данных о хитах завершено успешно");
+            log.info("Hits from unique IP's receiving complete successfully");
+            return hitRepository.findUniqueHits(start, end, uris);
         }
-
-        return statsResponse;
+        log.info("Hits receiving complete successfully");
+        return hitRepository.findNonUniqueHits(start, end, uris);
     }
 
     private App createAndSaveApp(String appName) {
