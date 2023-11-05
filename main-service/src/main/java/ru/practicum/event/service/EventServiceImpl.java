@@ -98,9 +98,10 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     public List<EventShortResponseDto> getEvents(long userId, int from, int size) {
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id"));
-        Page<EventShortResponseDto> events = eventRepository.findEventsWithViewsAndConfirmedRequestsByUserId(userId, pageable);
-        log.info("{} events found by request", events.getTotalElements());
-        return events.getContent();
+        Page<Event> events = eventRepository.findAllByInitiatorId(userId, pageable);
+        List<EventShortResponseDto> result = updateViewsAndConfirmedRequestsInEventShortResponseDto(events.toList());
+        log.info("{} events found by request", result.size());
+        return result;
     }
 
     @Override
