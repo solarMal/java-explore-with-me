@@ -41,13 +41,13 @@ public class RequestServiceImpl implements RequestService {
         User requester = findUser(userId);
         Event event = findEvent(eventId);
         if (requestRepository.existsByRequesterIdAndEventId(userId, eventId)) {
-            throw new PermissionException("Запрос от пользователя с ID: '" + userId + "' к мероприятию с ID:'" + eventId + "' уже существует");
+            throw new PermissionException("Request from user with ID: '" + userId + "' to event with ID:'" + eventId + "' already exists");
         }
         if (event.getInitiator().getId() == userId) {
-            throw new PermissionException("Инициатор мероприятия не может отправлять запросы на свое мероприятие");
+            throw new PermissionException("Initiator of event couldn't make request to his own event");
         }
         if (!event.getState().equals(EventState.PUBLISHED)) {
-            throw new PermissionException("Нельзя отправлять запросы к неопубликованным мероприятиям");
+            throw new PermissionException("Couldn't make request to not published event");
         }
         RequestStatus requestStatus = RequestStatus.PENDING;
         if (!event.isRequestModeration() || event.getParticipantLimit() == 0) {
@@ -56,7 +56,7 @@ public class RequestServiceImpl implements RequestService {
         EventRequestsCount amountOfConfirmedRequests = requestRepository.getAmountOfConfirmedRequests(eventId);
         long count = (amountOfConfirmedRequests == null) ? 0 : amountOfConfirmedRequests.getCount();
         if (event.getParticipantLimit() != 0 && count == event.getParticipantLimit()) {
-            throw new PermissionException("Достигнут лимит участников мероприятия");
+            throw new PermissionException("Participant limit of event already reached");
         }
         Request request = Request.builder()
                 .created(LocalDateTime.now())
@@ -65,7 +65,7 @@ public class RequestServiceImpl implements RequestService {
                 .status(requestStatus)
                 .build();
         request = requestRepository.save(request);
-        log.info("Запрос с ID: '{}' успешно создан", request.getId());
+        log.info("Request with ID: '{}' successfully created", request.getId());
         return toRequestDto(request);
     }
 
@@ -77,7 +77,7 @@ public class RequestServiceImpl implements RequestService {
         if (requestRepository.existsByIdAndRequesterId(requestId, userId)) {
             request.setStatus(RequestStatus.CANCELED);
         }
-        log.info("Запрос с ID: '{}' успешно отменен", request.getId());
+        log.info("Request with ID: '{}' successfully canceled", request.getId());
         return toRequestDto(request);
     }
 
@@ -86,7 +86,7 @@ public class RequestServiceImpl implements RequestService {
     public List<RequestDto> getOwnRequests(long userId) {
         findUser(userId);
         List<Request> requests = requestRepository.findAllByRequesterId(userId);
-        log.info("Запросы пользователя с ID: '{}' успешно получены", userId);
+        log.info("Requests of user with ID: '{}' successfully received", userId);
         return requests.stream()
                 .map(RequestMapper::toRequestDto)
                 .collect(Collectors.toList());
@@ -99,18 +99,12 @@ public class RequestServiceImpl implements RequestService {
                 .map(Event::getId)
                 .collect(Collectors.toList());
         List<EventRequestsCount> counts = requestRepository.getAmountOfConfirmedRequestsOfEvents(eventIds);
-
         if (counts.isEmpty()) {
-            log.info("Не найдено подтвержденных запросов для указанных мероприятий");
             return result;
         }
-
         for (EventRequestsCount count : counts) {
             result.put(count.getEventId(), count.getCount());
         }
-
-        log.info("Количество подтвержденных запросов для указанных мероприятий успешно получено");
-
         return result;
     }
 

@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDto createUser(UserDto userDto) {
         User user = userRepository.save(toUser(userDto));
-        log.info("Пользователь с идентификатором: '" + user.getId() + "' успешно создан");
+        log.info("User with ID: '" + user.getId() + "' successfully created");
         return toUserDto(user);
     }
 
@@ -48,16 +48,16 @@ public class UserServiceImpl implements UserService {
                     .map(UserMapper::toUserDto)
                     .collect(Collectors.toList());
         }
-        log.info("Найдено {} пользователей по запросу", result.size());
+        log.info("{} users found by request", result.size());
         return result;
     }
 
     @Override
     @Transactional(rollbackFor = NotFoundException.class)
     public void deleteUser(long id) {
-        userRepository.findById(id).ifPresent(user -> {
-            userRepository.delete(user);
-            log.info("Пользователь с идентификатором: '{}' успешно удален", user.getId());
-        });
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User with ID: '" + id + "'not found"));
+        userRepository.delete(user);
+        log.info("User with ID: '{}' successfully removed", user.getId());
     }
 }
