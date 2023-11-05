@@ -26,15 +26,16 @@ public class StatsClient extends BaseClient {
         );
     }
 
-    ResponseEntity<Object> create(HttpServletRequest request) {
+    public ResponseEntity<Object> hit(HttpServletRequest request, String app) {
+        String realIp = request.getRemoteAddr().equals("0:0:0:0:0:0:0:1") ? "127.0.0.1" : request.getRemoteAddr();
         return post("/hit", new StatsRequestDto(
-                request.getContextPath(),
+                app,
                 request.getRequestURI(),
-                request.getRemoteAddr(),
+                realIp,
                 LocalDateTime.now()));
     }
 
-    ResponseEntity<Object> get(String start, String end, Collection<String> uris, Boolean unique) {
+    public ResponseEntity<Object> get(String start, String end, Collection<String> uris, Boolean unique) {
         Map<String, Object> parameters = Map.of(
                 "start", start,
                 "end", end,
