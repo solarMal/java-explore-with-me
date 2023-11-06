@@ -81,12 +81,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.querydsl</groupId>
-                        <artifactId>querydsl-apt</artifactId>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
