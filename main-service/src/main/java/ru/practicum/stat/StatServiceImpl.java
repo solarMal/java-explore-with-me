@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,21 +36,29 @@ public class StatServiceImpl implements StatService {
         LocalDateTime end = start;
         List<String> uris = new ArrayList<>();
         Map<Long, Long> result = new HashMap<>();
+
         for (Event e : events) {
             if (e.getPublishedOn() != null && e.getPublishedOn().isBefore(start)) {
                 start = e.getPublishedOn();
             }
             uris.add("/events/" + e.getId());
         }
+
         ResponseEntity<Object> response = statsClient.get(start.format(FORMATTER), end.format(FORMATTER), uris, true);
-        List<StatsResponseDto> stats = objectMapper.convertValue(response.getBody(), new TypeReference<>() {
-        });
-        if (!stats.isEmpty()) {
-            for (StatsResponseDto s : stats) {
-                String[] event = s.getUri().split("/");
-                result.put(Long.parseLong(event[event.length - 1]), s.getHits());
+
+        try {
+            if (response.getStatusCode() == HttpStatus.OK) {
+                List<StatsResponseDto> stats = objectMapper.convertValue(response.getBody(), new TypeReference<>() {});
+                for (StatsResponseDto s : stats) {
+                    String[] event = s.getUri().split("/");
+                    result.put(Long.parseLong(event[event.length - 1]), s.getHits());
+                }
             }
+        } catch (Exception e) {
+
+            log.error("Error while processing stats response: " + e.getMessage());
         }
+
         return result;
     }
 

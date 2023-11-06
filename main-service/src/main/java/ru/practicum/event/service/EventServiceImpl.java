@@ -131,12 +131,17 @@ public class EventServiceImpl implements EventService {
         BooleanExpression filter = makeAdminFilterByParameters(users, states, categories, rangeStart, rangeEnd);
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id"));
         Iterable<Event> iterable = eventRepository.findAll(filter, pageable);
-        List<EventResponseDto> result = new ArrayList<>();
-        EventResponseDto responseDto;
+        List<Long> eventIds = new ArrayList<>();
         for (Event event : iterable) {
-            responseDto = updateViewsAndConfirmedRequestsInEventResponseDto(event);
+            eventIds.add(event.getId());
+        }
+        List<Event> events = getEventsByIds(eventIds);
+        List<EventResponseDto> result = new ArrayList<>();
+        for (Event event : events) {
+            EventResponseDto responseDto = updateViewsAndConfirmedRequestsInEventResponseDto(event);
             result.add(responseDto);
         }
+
         log.info("{} events found by request", result.size());
         return result;
     }
@@ -465,5 +470,9 @@ public class EventServiceImpl implements EventService {
             result.add(responseDto);
         }
         return result;
+    }
+
+    private List<Event> getEventsByIds(List<Long> eventIds) {
+        return eventRepository.findAllById(eventIds);
     }
 }
