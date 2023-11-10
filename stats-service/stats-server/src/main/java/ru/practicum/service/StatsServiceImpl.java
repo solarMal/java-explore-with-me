@@ -14,6 +14,7 @@ import ru.practicum.repository.HitRepository;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static ru.practicum.mapper.HitMapper.toHit;
 
@@ -28,14 +29,17 @@ public class StatsServiceImpl implements StatsService {
     @Override
     @Transactional
     public void saveHit(StatsRequestDto statsRequestDto) {
-        App app = getAppOrCreateIfNotExists(statsRequestDto.getApp());
+        Optional<App> optApp = appRepository.findByName(statsRequestDto.getApp());
+        App app = new App();
+        if (optApp.isEmpty()) {
+            app.setName(statsRequestDto.getApp());
+            appRepository.save(app);
+        } else {
+            app = optApp.get();
+        }
         Hit hit = toHit(statsRequestDto, app);
         hitRepository.save(hit);
-        log.info("Hit сохранение завершено успешно");
-    }
-
-    private App getAppOrCreateIfNotExists(String appName) {
-        return appRepository.findByName(appName).orElseGet(() -> createAndSaveApp(appName));
+        log.info("Hit saving complete successfully");
     }
 
     @Override
@@ -44,23 +48,11 @@ public class StatsServiceImpl implements StatsService {
         if (uris == null) {
             uris = Collections.emptyList();
         }
-
-        List<StatsResponseDto> statsResponse;
-
         if (unique) {
-            statsResponse = hitRepository.findUniqueHits(start, end, uris);
-            log.info("Получение данных о хитах от уникальных IP-адресов завершено успешно");
-        } else {
-            statsResponse = hitRepository.findNonUniqueHits(start, end, uris);
-            log.info("Получение данных о хитах завершено успешно");
+            log.info("Hits from unique IP's receiving complete successfully");
+            return hitRepository.findUniqueHits(start, end, uris);
         }
-
-        return statsResponse;
-    }
-
-    private App createAndSaveApp(String appName) {
-        App app = new App();
-        app.setName(appName);
-        return appRepository.save(app);
+        log.info("Hits receiving complete successfully");
+        return hitRepository.findNonUniqueHits(start, end, uris);
     }
 }
