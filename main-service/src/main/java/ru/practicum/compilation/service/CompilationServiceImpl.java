@@ -8,12 +8,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.comment.dto.CommentMapper;
+import ru.practicum.comment.dto.CommentResponseDto;
+import ru.practicum.comment.repository.CommentRepository;
 import ru.practicum.compilation.dto.CompilationResponseDto;
 import ru.practicum.compilation.dto.NewCompilationRequestDto;
 import ru.practicum.compilation.dto.UpdateCompilationRequestDto;
 import ru.practicum.compilation.entity.Compilation;
 import ru.practicum.compilation.repository.CompilationRepository;
-import ru.practicum.event.dto.EventMapper;
 import ru.practicum.event.dto.EventShortResponseDto;
 import ru.practicum.event.entity.Event;
 import ru.practicum.event.repository.EventRepository;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 
 import static ru.practicum.compilation.dto.CompilationMapper.toCompilation;
 import static ru.practicum.compilation.dto.CompilationMapper.toCompilationResponseDto;
+import static ru.practicum.event.dto.EventMapper.toEventShortResponseDto;
 
 @Service
 @RequiredArgsConstructor
@@ -32,15 +35,14 @@ public class CompilationServiceImpl implements CompilationService {
 
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     @Transactional
     public CompilationResponseDto createCompilation(NewCompilationRequestDto compilationRequestDto) {
         Set<Long> ids = compilationRequestDto.getEvents();
         Set<Event> events = (ids == null) ? Collections.emptySet() : eventRepository.findByIdIn(ids);
-        Set<EventShortResponseDto> eventsDto = events.stream()
-                .map(EventMapper::toEventShortResponseDto)
-                .collect(Collectors.toSet());
+        Set<EventShortResponseDto> eventsDto = updateCommentsForEvents(events);
         Compilation compilation = toCompilation(compilationRequestDto, events);
         compilationRepository.save(compilation);
         log.info("Compilation with ID: '{}' successfully created", compilation.getId());
@@ -60,9 +62,7 @@ public class CompilationServiceImpl implements CompilationService {
         }
         compilationRepository.save(compilation);
         log.info("Compilation with ID: '{}' successfully updated", compilation.getId());
-        Set<EventShortResponseDto> eventsDto = compilation.getEvents().stream()
-                .map(EventMapper::toEventShortResponseDto)
-                .collect(Collectors.toSet());
+        Set<EventShortResponseDto> eventsDto = updateCommentsForEvents(compilation.getEvents());
         return toCompilationResponseDto(compilation, eventsDto);
     }
 
@@ -70,9 +70,7 @@ public class CompilationServiceImpl implements CompilationService {
     public CompilationResponseDto getCompilation(long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation with ID: '" + compId + "' not found"));
-        Set<EventShortResponseDto> eventsDto = compilation.getEvents().stream()
-                .map(EventMapper::toEventShortResponseDto)
-                .collect(Collectors.toSet());
+        Set<EventShortResponseDto> eventsDto = updateCommentsForEvents(compilation.getEvents());
         log.info("Compilation with ID: '{}' successfully received", compilation.getId());
         return toCompilationResponseDto(compilation, eventsDto);
     }
@@ -89,9 +87,7 @@ public class CompilationServiceImpl implements CompilationService {
         Set<EventShortResponseDto> eventsDto;
         List<CompilationResponseDto> result = new ArrayList<>();
         for (Compilation c : compilations) {
-            eventsDto = c.getEvents().stream()
-                    .map(EventMapper::toEventShortResponseDto)
-                    .collect(Collectors.toSet());
+            eventsDto = updateCommentsForEvents(c.getEvents());
             result.add(toCompilationResponseDto(c, eventsDto));
         }
         log.info("{} compilations found by request", result.size());
@@ -105,4 +101,18 @@ public class CompilationServiceImpl implements CompilationService {
         compilationRepository.delete(compilation);
         log.info("Compilation with ID: '{}' successfully removed", compilation.getId());
     }
+
+    private Set<EventShortResponseDto> updateCommentsForEvents(Set<Event> events) {
+        List<CommentResponseDto> comments = commentRepository.findByEventIn(events).stream()
+                .map(CommentMapper::toCommentResponseDto)
+                .collect(Collectors.toList());
+        return events.stream()
+                .map(e -> toEventShortResponseDto(e,
+                        comments.stream()
+                                .filter(c -> c.getEventId() == e.getId())
+                                .collect(Collectors.toList())))
+                .collect(Collectors.toSet());
+    }
+
+
 }

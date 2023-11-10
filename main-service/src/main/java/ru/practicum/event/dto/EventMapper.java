@@ -2,12 +2,14 @@ package ru.practicum.event.dto;
 
 import lombok.experimental.UtilityClass;
 import ru.practicum.category.entity.Category;
+import ru.practicum.comment.dto.CommentResponseDto;
 import ru.practicum.event.entity.Event;
 import ru.practicum.event.entity.EventState;
 import ru.practicum.event.entity.Location;
 import ru.practicum.user.entity.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static ru.practicum.category.dto.CategoryMapper.toCategoryDto;
 import static ru.practicum.event.dto.LocationMapper.toLocationDto;
@@ -60,7 +62,7 @@ public class EventMapper {
                 .build();
     }
 
-    public static EventShortResponseDto toEventShortResponseDto(Event event) {
+    public static EventShortResponseDto toEventShortResponseDto(Event event, List<CommentResponseDto> comments) {
         return EventShortResponseDto.builder()
                 .id(event.getId())
                 .title(event.getTitle())
@@ -69,6 +71,7 @@ public class EventMapper {
                 .category(toCategoryDto(event.getCategory()))
                 .eventDate(event.getEventDate())
                 .paid(event.isPaid())
+                .comments(comments)
                 .build();
     }
 }
