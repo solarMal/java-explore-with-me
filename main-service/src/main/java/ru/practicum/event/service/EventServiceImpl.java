@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.category.entity.Category;
 import ru.practicum.category.repository.CategoryRepository;
+import ru.practicum.comment.dto.CommentMapper;
+import ru.practicum.comment.dto.CommentResponseDto;
+import ru.practicum.comment.repository.CommentRepository;
 import ru.practicum.event.dto.*;
 import ru.practicum.event.entity.*;
 import ru.practicum.event.repository.EventRepository;
@@ -54,6 +57,7 @@ public class EventServiceImpl implements EventService {
     private final RequestRepository requestRepository;
     private final RequestService requestService;
     private final StatService statService;
+    private final CommentRepository commentRepository;
 
     @Override
     @Transactional(rollbackFor = {NotFoundException.class, ValidationException.class})
@@ -459,17 +463,21 @@ public class EventServiceImpl implements EventService {
     }
 
     private List<EventShortResponseDto> updateViewsAndConfirmedRequestsInEventShortResponseDto(List<Event> events) {
-        List<EventShortResponseDto> result = new ArrayList<>();
         Map<Long, Long> views = statService.getStats(events);
         Map<Long, Long> requests = requestService.getConfirmedRequests(events);
-        EventShortResponseDto responseDto;
-        for (Event event : events) {
-            responseDto = toEventShortResponseDto(event);
-            responseDto.setViews(views.getOrDefault(event.getId(), 0L));
-            responseDto.setConfirmedRequests(requests.getOrDefault(event.getId(), 0L));
-            result.add(responseDto);
-        }
-        return result;
+        List<CommentResponseDto> comments = commentRepository.findByEventIn(events).stream()
+                .map(CommentMapper::toCommentResponseDto)
+                .collect(Collectors.toList());
+        return events.stream()
+                .map(e -> toEventShortResponseDto(e,
+                        comments.stream()
+                                .filter(c -> c.getEventId() == e.getId())
+                                .collect(Collectors.toList())))
+                .peek(r -> {
+                    r.setViews(views.getOrDefault(r.getId(), 0L));
+                    r.setConfirmedRequests(requests.getOrDefault(r.getId(), 0L));
+                })
+                .collect(Collectors.toList());
     }
 
     private List<Event> getEventsByIds(List<Long> eventIds) {
